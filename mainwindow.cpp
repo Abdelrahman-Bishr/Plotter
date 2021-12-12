@@ -61,7 +61,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 
 void MainWindow::init()
 {
-    this->resize(800,600);
+    this->resize(1080,720);
     central_widget = new QWidget(this);
 
     chart = new Graph();

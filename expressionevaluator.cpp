@@ -37,7 +37,13 @@ double ExpressionEvaluator::applyOp(double a, double b, char op){
         case '+': return a + b;
         case '-': return a - b;
         case '*': return a * b;
-        case '/': return a / b;
+        case '/': {
+            if (b==0){
+                emit error_message("Zero Division");
+                return -1;
+            }
+            return a / b;
+            }
         case '^': return pow(a,b);
     }
 }
@@ -163,7 +169,9 @@ double ExpressionEvaluator::evaluate(double x){
         emit error_message(QString("can't evaluate with current function"));
         return -1;
     }
-    string tokens = exp_copy.replace("x",QString::number(x),Qt::CaseInsensitive).toStdString();
+    string tokens = exp_copy.replace("-x","-1*x",Qt::CaseInsensitive)
+            .replace("-(","-1*(",Qt::CaseInsensitive)
+                .replace("x",QString::number(x),Qt::CaseInsensitive).toStdString();
 
     tokens = sanity_check(tokens);
     if (tokens[0]=='_'){

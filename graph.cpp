@@ -67,6 +67,9 @@ void Graph::draw()
     graph->removeAllSeries();
     series = new QLineSeries();
     double x ;
+    if(max_x>=0 && min_x<=0){
+        get_y(0);
+    }
     for (int step=0;step<num_points && can_draw;step++){
         x = min_x + step* (max_x-min_x)/num_points;
         series->append(x,get_y(x));
@@ -131,6 +134,8 @@ void Graph::set_attributes()
 {
     graph->legend()->hide();
     graph->setTitle("Function plotter");
+    graph->setTheme(QChart::ChartTheme::ChartThemeBrownSand);
+    graph->setTitleFont(QFont("Serif",-1,-1,true));
 
     this->setChart(graph);
     this->setRenderHint(QPainter::Antialiasing);
@@ -138,8 +143,12 @@ void Graph::set_attributes()
     x_axis->setTitleText("X");
     y_axis->setTitleText("Y");
 
+    x_axis->setTitleFont(QFont("Serif",-1,-1,true));
+    y_axis->setTitleFont(QFont("Serif",-1,-1,true));
+
     graph->addAxis(x_axis,Qt::AlignBottom);
     graph->addAxis(y_axis,Qt::AlignLeft);
+
 }
 
 //void Graph::check_zero_inrange()

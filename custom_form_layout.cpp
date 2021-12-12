@@ -10,6 +10,8 @@ Custom_form_layout::Custom_form_layout(QString text)
         edit_box->setText("-1");
     label->setBuddy(edit_box);
     this->addRow(label,edit_box);
+    edit_box->setFont(QFont("Serif",-1,-1,true));
+    label->setFont(QFont("Serif",-1,-1,true));
 }
 
 void Custom_form_layout::edit_box_grab_keyboard()
