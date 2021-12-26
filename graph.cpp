@@ -7,9 +7,9 @@ Graph::Graph()
     set_resolution(10000);
     set_graph_ticks(15,15);
     set_x_extremes(-10,10);
-    set_y_extremes(-10,10);
-//    draw();
-    connect(evaluator,SIGNAL(error_message(QString)),this,SLOT(set_error_message(QString)));
+    min_y=-1;
+    max_y=1;
+    set_y_extremes();
 }
 
 Graph::~Graph()
@@ -32,16 +32,16 @@ void Graph::set_x_extremes(double min_x, double max_x)
     x_axis->setTickCount(graph_y_ticks);
 }
 
-void Graph::set_y_extremes(double min_y, double max_y)
+void Graph::set_y_extremes()
 {
     if (evaluator->is_const()){
-        if (min_y>0){
-            y_axis->setMin(0);
-            y_axis->setMax(1.5*max_y);
-        }else{
-            y_axis->setMax(0);
-            y_axis->setMin(1.5*max_y);
-        }
+//        if (min_y>0){
+            y_axis->setMin(evaluator->evaluate(0)-10);
+            y_axis->setMax(evaluator->evaluate(0)+10);
+//        }else{
+//            y_axis->setMax(0);
+//            y_axis->setMin(1.5*max_y);
+//        }
         }
     else{
         y_axis->setMin(min_y);
@@ -57,40 +57,59 @@ void Graph::set_resolution(int num_points)
 
 void Graph::draw()
 {
+    min_y = INT_MAX;
+    max_y = INT_MIN;
     if (!can_draw){
-        qDebug()<<"BAD EXPRESSION , CEASING TO DRAW";
         delete series;
         series=nullptr;
         return;
     }
-    set_y_extremes(get_y(min_x),get_y(max_x));
+
     graph->removeAllSeries();
     series = new QLineSeries();
     double x ;
     if(max_x>=0 && min_x<=0){
-        get_y(0);
+        try {
+            get_y(0);
+        } catch (std::invalid_argument e) {
+            set_error_message(QString(e.what()));
+            return;
+        }
     }
+    double y;
     for (int step=0;step<num_points && can_draw;step++){
         x = min_x + step* (max_x-min_x)/num_points;
-        series->append(x,get_y(x));
+        try {
+            y=get_y(x);
+            this->max_y = std::max(max_y,y);
+            this->min_y = std::min(min_y,y);
+            series->append(x,y);
+        } catch (std::invalid_argument e) {
+            set_error_message(QString(e.what()));
+            return;
+        }
         if (!can_draw){
-            qDebug()<<"BAD EXPRESSION , CEASING TO DRAW";
             delete series;
             series=nullptr;
             return;
         }
     }
     if (!can_draw){
-        qDebug()<<"BAD EXPRESSION , CEASING TO DRAW";
         delete series;
         series=nullptr;
         return;
     }
     x = max_x;
+    try {
+        set_y_extremes();
+    } catch (std::invalid_argument e) {
+        set_error_message(QString(e.what()));
+        return;
+    }
     graph->addSeries(series);
     series->attachAxis(x_axis);
     series->attachAxis(y_axis);
-    qDebug()<<"==================================================";
+
 }
 
 void Graph::set_graph_ticks(int x, int y)
@@ -102,20 +121,27 @@ void Graph::set_graph_ticks(int x, int y)
 void Graph::set_function(QString func)
 {
     can_draw=true;
-    evaluator->set_expression(func);
+    try {
+        evaluator->set_expression(func.toStdString());
+    } catch (std::invalid_argument e) {
+        cout<<e.what();
+    }
+//    cout<<"function set\n";
 }
 
 double Graph::get_y(double x)
 {
-//    qDebug()<<"in get_y , x = "<<x<<"\t y = "<<evaluator->evaluate(x);
-    return evaluator->evaluate(x);
+    try {
+        return evaluator->evaluate(x);
+    } catch (std::invalid_argument e) {
+        throw e;
+    }
 }
 
 void Graph::set_error_message(QString message)
 {
     can_draw=false;
     emit error_message(message);
-//    evaluator->set_expression(0);
 }
 
 void Graph::init()
@@ -150,11 +176,3 @@ void Graph::set_attributes()
     graph->addAxis(y_axis,Qt::AlignLeft);
 
 }
-
-//void Graph::check_zero_inrange()
-//{
-//    if (min_x<=0 && max_x>=0){
-//        set_graph_ticks(graph_x_tick+1,graph_y_ticks+1);
-//    }
-//}
-

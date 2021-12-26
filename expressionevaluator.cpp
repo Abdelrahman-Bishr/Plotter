@@ -2,21 +2,22 @@
 
 ExpressionEvaluator::ExpressionEvaluator()
 {
-    expression="-x";
+    expression="-x^2";
 }
 
-void ExpressionEvaluator::set_expression(QString exp)
+void ExpressionEvaluator::set_expression(string exp)
 {
-    expression=exp.replace(" ","") ;
-    expression = expression_sanity_check(expression);
+//    remove_if(exp.begin(),exp.end(),::isspace);
+//    replace(exp_copy.begin(),exp_copy.end(),'X','x');
+    expression = expression_sanity_check(exp);
     if (expression[0]=='_'){
         if (expression.length()==2){
-            QString message = "UNRECOGNIZED CHARACTER "+expression[1];
-            emit error_message(message);
+            string message = "UNRECOGNIZED CHARACTER "+expression[1];
+            throw std::invalid_argument(message);
         }
         else if (expression.length()==3){
-            QString message = "UNBALANCED BRACKETS";
-            emit error_message(message);
+            string message = "UNBALANCED BRACKETS";
+            throw std::invalid_argument(message);
         }
     }
 }
@@ -39,7 +40,7 @@ double ExpressionEvaluator::applyOp(double a, double b, char op){
         case '*': return a * b;
         case '/': {
             if (b==0){
-                emit error_message("Zero Division");
+                throw std::invalid_argument("Zero Division");
                 return -1;
             }
             return a / b;
@@ -93,14 +94,14 @@ void ExpressionEvaluator::apply_higher_precedence_ops(stack<double> & values,sta
     }
 }
 
-QString ExpressionEvaluator::expression_sanity_check(QString tokens)
+string ExpressionEvaluator::expression_sanity_check(string tokens)
 {
 
-    if (precedence(tokens[0].toLatin1())!=0 && tokens[0]!='-'){
-        QString message = "BINARY OPERATOR ";
-        message.append(tokens[0]);
+    if (precedence(tokens[0])!=0 && tokens[0]!='-'){
+        string message = "BINARY OPERATOR ";
+        message+=tokens[0];
         message+= " LACKING ENOUGH OPERANDS";
-        emit error_message(message);
+        throw std::invalid_argument(message);
         return message;
     }
 
@@ -110,16 +111,16 @@ QString ExpressionEvaluator::expression_sanity_check(QString tokens)
     int brackets=0;
     for(int i = 0; i < tokens.length(); i++){
         // MAKE SURE NO STRANGE CHARACTERS
-        if (!isdigit(tokens[i].toLatin1()) && tokens[i] !='+' && tokens[i] !='-' && tokens[i] !='*' &&
+        if (!isdigit(tokens[i]) && tokens[i] !='+' && tokens[i] !='-' && tokens[i] !='*' &&
         tokens[i] !='/' && tokens[i] !='(' && tokens[i] !=')' && tokens[i] !='.' &&
          tokens[i] !='^' && tokens[i] !='x' && tokens[i] !='X'){
-            QString tempo = "_";
+            string tempo = "_";
             tempo+=tokens[i];
             return tempo;
         }
         if(tokens[i]=='(' || tokens[i]=='x' || tokens[i]=='X'){
             if(i>=1){
-                if (isdigit(tokens[i-1].toLatin1())){
+                if (isdigit(tokens[i-1])){
                     tokens=tokens.insert(i,"*");
                     i++;
                 }
@@ -158,30 +159,43 @@ string ExpressionEvaluator::sanity_check(string tokens){
 
 
     }
+
     return tokens;
+}
+
+string ExpressionEvaluator::replace_(string s, string old, string n)
+{
+    size_t index=0;
+    while (true){
+        index = s.find(old,index);
+        if(index==string::npos) break;
+        s.replace(index,old.length(),n);
+        index+=old.length();
+    }
+    return s;
 }
 
 
 double ExpressionEvaluator::evaluate(double x){
     int i;
-    QString exp_copy = expression;
+    string exp_copy = expression;
     if (expression[0]=='_'){
-        emit error_message(QString("can't evaluate with current function"));
+        throw std::invalid_argument("can't evaluate with current function");
         return -1;
     }
-    string tokens = exp_copy.replace("-x","-1*x",Qt::CaseInsensitive)
-            .replace("-(","-1*(",Qt::CaseInsensitive)
-                .replace("x",QString::number(x),Qt::CaseInsensitive).toStdString();
 
+    string tokens = replace_(replace_(replace_(exp_copy,"-x","-1*x"),"-(","-1*("),"x",to_string(x));
+//    cout<<"in evaluator.evaluate(x), before sanity check , tokens = "<<exp_copy<<endl;
     tokens = sanity_check(tokens);
+//    cout<<"in evaluator.evaluate(x), after sanity check , tokens = "<<tokens<<endl;
     if (tokens[0]=='_'){
-        QChar op1(tokens[2]),op2(tokens[3]);
-        QString message = "BINARY OPERATORS ";
-        message.append(op1);
+        char op1(tokens[2]),op2(tokens[3]);
+        string message = "BINARY OPERATORS ";
+        message+=op1;
         message+= " AND ";
-        message.append(op2);
+        message+=op2;
         message+= " LACKING ENOUGH OPERANDS";
-        emit error_message(message);
+        throw std::invalid_argument(message);
         return -1;
     }
     // stack to store integer values.
@@ -278,12 +292,11 @@ double ExpressionEvaluator::evaluate(double x){
                                 open_brackets--;
                         }
                         if (i+l >= tokens.length()){
-                            emit error_message(QString("ERROR , UNBALANCED PARENTHES"));
-                            return -1;
+                            throw std::invalid_argument("ERROR , UNBALANCED PARENTHES");
                         }
                         string cpy = tokens.substr(i+1,l);
-                        QString exp = this->expression;
-                        this->expression = QString::fromStdString(cpy);
+                        string exp = this->expression;
+                        this->expression = cpy;
                         val = -1 * evaluate(x);
                         this->expression = exp;
                         values.push(val);
@@ -297,9 +310,8 @@ double ExpressionEvaluator::evaluate(double x){
                     }
                     // fault handling
                     else if(precedence(tokens[i+1])!=0 && tokens[i+1]!='-'){
-                        QString message = "ERROR , SUBTRACTION CAN'T BE FOLLOWED BY ANOTHER OPERATOR";
-                        emit error_message(message);
-                        return -1;
+                        string message = "ERROR , SUBTRACTION CAN'T BE FOLLOWED BY ANOTHER OPERATOR";
+                        throw std::invalid_argument(message);
                     }
                 }
             }
@@ -319,7 +331,7 @@ double ExpressionEvaluator::evaluate(double x){
     // values.
     while(!ops.empty()){
         if (values.size()<2){
-            emit error_message(QString("OPERATORS LACKING OPERANDS"));
+            throw std::invalid_argument("OPERATORS LACKING OPERANDS");
             return -1;
         }
         double val2 = values.top();

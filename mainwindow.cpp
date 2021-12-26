@@ -5,10 +5,11 @@ MainWindow::MainWindow(QWidget *parent)
 {
     init();
     position_items();
-    adjust_graph();
     chart->show();
-    connect(chart,SIGNAL(error_message(QString)),this,SLOT(set_error_message(QString)));
+
     connect(plot_bttn,SIGNAL(clicked()),this,SLOT(draw()));
+
+    connect(chart,SIGNAL(error_message(QString)),this,SLOT(set_error_message(QString)));
     connect(error_message_box,SIGNAL(buttonClicked(QAbstractButton*)),this,SLOT(error_message_box_bttn_clicked(QAbstractButton*)));
 }
 
@@ -35,8 +36,11 @@ void MainWindow::draw()
         set_error_message("Empty Expression");
         return;
     }
+//    cout<<"mainwindow , setting extremes\n";
     chart->set_x_extremes(min_x_layout->get_val(),max_x_layout->get_val());
+//    cout<<"mainwindow , setting functions\n";
     chart->set_function(function_layout->get_function());
+//    cout<<"mainwindow , drawing\n";
     chart->draw();
 }
 
@@ -87,11 +91,6 @@ void MainWindow::position_items()
     x_extremes_layout->addLayout(min_x_layout);
     x_extremes_layout->addLayout(max_x_layout);
     central_widget_layout->addWidget(plot_bttn,0,Qt::AlignTrailing);
-}
-
-void MainWindow::adjust_graph()
-{
-
 }
 
 

@@ -34,6 +34,6 @@ private:
     void keyPressEvent(QKeyEvent * event);
     void init();
     void position_items();
-    void adjust_graph();
+
 };
 #endif // MAINWINDOW_H
