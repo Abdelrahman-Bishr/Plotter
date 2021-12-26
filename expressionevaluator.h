@@ -1,6 +1,5 @@
 #ifndef EXPRESSIONEVALUATOR_H
 #define EXPRESSIONEVALUATOR_H
-#include <QDebug>
 #include <math.h>
 #include <cassert>
 #include<bits/stdc++.h>
